@@ -11,6 +11,7 @@
 </ul>
 
 <form id='form' method='POST'> {% csrf_token %}
+    <input type='hidden' id='myUsername' value='{{ user.username }}'
 {{form.as_p }}
 <input type='submit' class='btn btn-primary'/>
 </form>
@@ -21,23 +22,43 @@
 
 <script>
 // websocket scripts
-console.log(window.location)
-var loc = window.location 
+// console.log(window.location)
+var loc = window.location
+// grabs us the object with id=form
+var formData = $('#form')
+var msgInput = $('#id_message') //taken from inspecting elements 
+var chatHolder = $('#chat-items')
+var me = $('#myUsername').val()
 
 //connect to websocket endpoint 
 var wsStart = 'ws://'
 if (loc.protocol == 'https:'){
     wsStart = 'wss://' 
 }
-var endpoint = wsStart + loc.host + loc.pathname 
+var endpoint = wsStart + loc.host + loc.pathname + '/'
 var socket = new WebSocket(endpoint)
 
 // Client side events 
 socket.onmessage = function(e){
     console.log("message", e)
+    var chatDataMsg = JSON.parse(e.data)
+    chatHolder.append('<li>' + chatDataMsg.message + " via " + chatDataMsg.username + '</li')
 }
+
 socket.onopen = function(e){
     console.log("open", e)
+    formData.submit(function(event){
+        event.preventDefault()
+        var msgText = msgInput.val() 
+        chatHolder.append('<li>' + msgText + ' via ' + me + '</li>')
+        // var formDataSerialized = formData.serialize()
+        var finalData = {
+            'message': msgText
+        }
+        socket.send(JSON.stringify(finalData))
+        //msgInput.val('')
+        formData[0].reset()
+    })
 }
 socket.onerror = function(e){
     console.log("error", e)
